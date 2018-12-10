@@ -37,7 +37,7 @@ target_parts = []
 # creates the projectile that the tank launches
 def add_projectile(x, y):
     mass = 1
-    radius = 15
+    radius = 8
     moment = pymunk.moment_for_circle(mass, 0, radius)
     body = pymunk.Body(mass, moment)
     body.position = 50, 50
@@ -83,6 +83,57 @@ def add_target_part(mass, radius, x, y, i):
 # circle_shape.friction = 1.0
 # space.add(circle_body, circle_shape)
 
+# handler that runs whenever two different bodies collide
+def coll_begin(arbiter, space, data):
+    for i in range(len(targets)):
+        if arbiter.shapes[1].id == targets[i].id:
+            x = targets[i].body.position.x
+            y = targets[i].body.position.y
+            space.remove(projectiles[0].body, projectiles[0])
+            space.remove(targets[i].body, targets[i])
+            target_explosion(x, y)
+            print("WORKED")
+            print(i)
+            break
+    return True
+
+
+def coll_pre(arbiter, space, data):
+    return True
+
+
+def coll_post(arbiter, space, data):
+    pass
+
+
+def coll_separate(arbiter, space, data):
+    pass
+
+
+handler = space.add_default_collision_handler()
+handler.begin = coll_begin
+handler.pre_solve = coll_pre
+handler.post_solve = coll_post
+handler.separate = coll_separate
+
+
+# called when the target explodes into smaller pieces
+def target_explosion(x, y):
+    q = 50
+    num = 10
+    direction = 0
+    # target_parts.clear()
+    for i in range(2):
+        for j in range(5):
+            add_target_part(1, 3, (x - 15) + (10 * j), y - (7 * i), q)
+            q -= 1
+
+    for x in target_parts:
+        x.body.apply_impulse_at_world_point(
+            (50 * math.cos(radians(direction)), 50 * math.sin(radians(direction))), (2, 2))
+        direction += 360 / num
+
+
 def main():
     rot = 0
     movex = 0
@@ -120,6 +171,8 @@ def main():
     myfont = pygame.font.SysFont('Comic Sans MS', 20)
     pygame.display.set_caption("First Game")
     global angle
+    add_projectile(50, 50)
+    add_target(1, 15, 200, 200, 1)
     draw_options = pymunk.pygame_util.DrawOptions(screen)
 
     while True:
@@ -143,8 +196,9 @@ def main():
             blittedRect.centerx += 5
         if keys[pygame.K_SPACE]:
             space.gravity = (0, -980)
-            projectiles[0].body.apply_impulse_at_world_point((100 * math.cos(radians(angle)), 100 * math.sin(radians(angle))),
-                                                     (50, 50))
+            projectiles[0].body.apply_impulse_at_world_point(
+                (100 * math.cos(radians(angle)), 100 * math.sin(radians(angle))),
+                (50, 50))
         if keys[pygame.K_q] and angle < 90:
             angle = angle + 1
         if keys[pygame.K_e] and angle > 0:
